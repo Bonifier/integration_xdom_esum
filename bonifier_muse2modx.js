@@ -25,8 +25,8 @@ $(document).ready(function () {
 		});
 
 		if(siblingStyleApplied && $(eachContainer).is(":empty")) {
-			$(eachContainer).hide();
-		}
+			$(eachContainer).remove();
+		} 
 	});
 });
 

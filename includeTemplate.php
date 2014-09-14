@@ -20,10 +20,23 @@ $srcNodes = $xpath->query('//@href|//@src|//@data-src');
 
 foreach($srcNodes as $srcNode) {
 
-	// absolute path
-	$isColon = !(strrpos($srcNode->nodeValue, ":") === false);
-	$isDoubleSlash = startsWith($srcNode->nodeValue, "//");
+    // sometimes we could usee modx tags link in muse
+    // muse automatically convert [[ to %5B%5B and ]] to %5D%5D, plus prefix http://
+    if(endsWith(trim($srcNode->nodeValue), "%5D%5D")) {
+        $tmpNodePos = strpos($srcNode->nodeValue, "//");
+        if($tmpNodePos !== false) {
+            $tmpNodeVal = substr($srcNode->nodeValue, $tmpNodePos + 2);
 
+            if(startsWith($tmpNodeVal, "%5B%5B")) {
+                $srcNode->nodeValue = str_replace($tmpNodeVal, array("%5B%5B", "%5D%5D"), array("[[", "]]"));
+            }
+        }
+    }
+
+	// absolute path
+	$isColon = strrpos($srcNode->nodeValue, ":") !== false;
+	$isDoubleSlash = startsWith($srcNode->nodeValue, "//");
+    
 	// relative path
 	if(!$isColon && !$isDoubleSlash) {
 		$srcNode->nodeValue = joinPaths($rel_path, $srcNode->nodeValue);
@@ -38,7 +51,7 @@ foreach($ctnNodes as $ctnNode) {
         endsWith(trim($ctnNode->nodeValue), "]]")) {
 
         $cssClass = $ctnNode->getAttribute('class');
-        $cssClass = trim($cssClass) . " modx";
+        $cssClass = (trim($cssClass) != '') ? trim($cssClass) . " modx" : "modx";
         $ctnNode->setAttribute('class', $cssClass); 
     }
 }
