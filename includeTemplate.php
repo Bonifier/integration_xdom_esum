@@ -1,19 +1,52 @@
 <?php
 # Snippet to include template files from file system
-# USAGE: [[includeTemplate? &tpl=`mytemplate/template.html`]]
+# USAGE: [[includeTemplate? &tpl=`assets\_bespoke\tp_pg1.html`              // muse html file load as template 
+#                           &component1=`assets\_bespoke\tp_accordion.html`  // muse html file load as component
+#                           &placehold1=`u1391-2`                           // element id in !template! for the component to add in
+#                           &repeatId1=`u1587`                              // element id in !component! which needed to repeat
+#                           &repeatRef1=`1,3,4,7`                           // modx resources id for repeater to refer to
+#                           &component2=`assets\_bespoke\tp_menu.html` ...]] // goes on
 
-$bonifierJS = '//bonifier.com.hk/shared/bonifier_muse2modx.js';
-$bonifierCSS = '//bonifier.com.hk/shared/bonifier_muse2modx.css';
-
+// check parameters integrity
 if ( !isset($tpl) || $tpl== "" ) return "Missing Template file!";
 
-$tpl = $base_path .$tpl;
-$rel_path = substr(substr($tpl, 0, strrpos($tpl, "/")), strlen($base_path));
+// and count how many effective templates defined
+$paramsMandate = array('component', 'placehold');
+$templateCnt = -1;
+for($i = 1; true; $i++)
+    foreach ($paramsMandate as $param) {
+        if(!isset(${$param . $i}) || ${$param . $i} == "") {
+            $templateCnt = $i - 1;
+            break;
+        }
+    }
+    if($templateCnt != -1) break;
+}
+
+// load the whole template html to dom tree & xpath
+$rel_path = substr($tpl, 0, strrpos($tpl, "/"));
 
 $html = file_get_contents($tpl);
 $dom = new DOMDocument;
-$dom->loadHTML($html);
+$dom -> loadHTML($html);
 $xpath = new DOMXPath($dom);
+
+// load components
+for($i = 1; $i <= $templateCnt; $i++) {
+
+    $html_com = file_get_contents(${'component' . $i - 1});
+    $dom_com = new DOMDocument;
+    $dom_com -> loadHTML($html_com);
+    $xpath_com = new DOMXPath($dom_com);
+
+    // merge body (everything excl' script)
+
+        // handle repeat
+
+    // merge head (meta + script) - skip duplicate (rough check)
+
+    // merge head () - skip duplicate (rough check)
+}
 
 // fix template referencing path
 $srcNodes = $xpath->query('//@href|//@src|//@data-src');
@@ -57,6 +90,9 @@ foreach($ctnNodes as $ctnNode) {
 }
 
 // bespoke de bonifier add on scripts
+$bonifierJS = '//bonifier.com.hk/shared/bonifier_muse2modx.js';
+$bonifierCSS = '//bonifier.com.hk/shared/bonifier_muse2modx.css';
+
 $headNode = $xpath->query('//head');
 
 $cssNode = $dom->createElement('link');
