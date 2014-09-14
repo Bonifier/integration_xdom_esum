@@ -41,23 +41,36 @@ for($i = 1; $i <= $templateCnt; $i++) {
 
     // merge body (everything inside 'page')
     // XPath Tester - http://videlibri.sourceforge.net/cgi-bin/xidelcgi
-    $srcNodes = $xpath_com -> query("//div[@id='page']/*");
+    $comNodes = $xpath_com -> query("//div[@id='page']/*");
+    $srcNodes = $xpath -> query("//*[@id='" . ${'placehold' . $i} . "']");
 
-    // handle repeat
-    if(!isset(${'repeatId' . $i}) || ${'repeatId' . $i} == ""  || !isset(${'repeatRef' . $i}) || ${'repeatRef' . $i} == "") {
-        $repNodes = $xpath_com -> query("//*[id='" . ${'repeatId' . $i} . "']");
-        if(count($repNodes) > 0) {
-            foreach (explode(',', ${'repeatRef' . $i}) as $repeatRef) {
+    if(count($comNodes) > 0 && count($srcNodes) > 0) {
 
-                // deep clone the repeating tag
-                $repNodeClone = $repNodes -> item(0) -> cloneNode(true);
+        // handle repeat
+        if(!isset(${'repeatId' . $i}) || ${'repeatId' . $i} == ""  || !isset(${'repeatRef' . $i}) || ${'repeatRef' . $i} == "") {
+            $repNodes = $xpath_com -> query("//*[id='" . ${'repeatId' . $i} . "']", $comNodes -> item(0));
+            if(count($repNodes) > 0) {
+                foreach (explode(',', ${'repeatRef' . $i}) as $repeatRef) {
 
-                // change element id
-                $repNodeClone -> setAttribute('id', $repNodeClone -> getAttribute('id') . $repeatRef);
+                    // deep clone the repeating tag
+                    $repNodeClone = $repNodes -> item(0) -> cloneNode(true);
 
-                // add it to the end of repeating tags
-                $repNodes -> item(0) -> parentNode -> appendChild($repNoteClone);
+                    // change element id
+                    $repNodeClone -> setAttribute('id', $repNodeClone -> getAttribute('id') . $repeatRef);
+
+                    // add it to the end of repeating tags
+                    $repNodes -> item(0) -> parentNode -> appendChild($repNoteClone);
+                }
             }
+        }
+
+        // insert to template
+        if($srcNodes -> item(0) -> nodeName != 'div' && $srcNodes -> item(0) -> nodeName != 'span') {
+            // component replace placeholder (since it is not container)
+            $srcNodes -> item(0) -> parentNode -> replaceChild($comNodes -> item(0), $srcNodes -> item(0));
+        } else {
+            // component insert to placeholder
+            $srcNodes -> item(0) -> appendChild($comNodes -> item(0));
         }
     }
 
