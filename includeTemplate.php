@@ -39,53 +39,75 @@ for($i = 1; $i <= $templateCnt; $i++) {
     $dom_com -> loadHTML($html_com);
     $xpath_com = new DOMXPath($dom_com);
 
-    // merge body (everything excl' script)
+    // merge body (everything inside 'page')
+    // XPath Tester - http://videlibri.sourceforge.net/cgi-bin/xidelcgi
+    $srcNodes = $xpath_com -> query("//div[@id='page']/*");
 
-        // handle repeat
+    // handle repeat
+    if(!isset(${'repeatId' . $i}) || ${'repeatId' . $i} == ""  || !isset(${'repeatRef' . $i}) || ${'repeatRef' . $i} == "") {
+        $repNodes = $xpath_com -> query("//*[id='" . ${'repeatId' . $i} . "']");
+        if(count($repNodes) > 0) {
+            foreach (explode(',', ${'repeatRef' . $i}) as $repeatRef) {
 
-    // merge head (meta + script) - skip duplicate (rough check)
+                // deep clone the repeating tag
+                $repNodeClone = $repNodes -> item(0) -> cloneNode(true);
 
-    // merge head () - skip duplicate (rough check)
+                // change element id
+                $repNodeClone -> setAttribute('id', $repNodeClone -> getAttribute('id') . $repeatRef);
+
+                // add it to the end of repeating tags
+                $repNodes -> item(0) -> parentNode -> appendChild($repNoteClone);
+            }
+        }
+    }
+
+    // merge body (script)
+    // ... comapare blocks of code first, insert when missing
+    // ... if code block type same, but content different, compare line by line, insert when missing
+
+    // merge head (css)
+    // ... compare link rel, insert when missing
+    // ... if css file name same as component name page
 }
 
 // fix template referencing path
-$srcNodes = $xpath->query('//@href|//@src|//@data-src');
+$srcNodes = $xpath -> query('//@href|//@src|//@data-src');
 
 foreach($srcNodes as $srcNode) {
 
-    // sometimes we could usee modx tags link in muse
+    // sometimes we could use modx tags link in muse
     // muse automatically convert [[ to %5B%5B and ]] to %5D%5D, plus prefix http://
-    if(endsWith(trim($srcNode->nodeValue), "%5D%5D")) {
-        $tmpNodePos = strpos($srcNode->nodeValue, "//");
+    if(endsWith(trim($srcNode -> nodeValue), "%5D%5D")) {
+        $tmpNodePos = strpos($srcNode -> nodeValue, "//");
         if($tmpNodePos !== false) {
-            $tmpNodeVal = substr($srcNode->nodeValue, $tmpNodePos + 2);
+            $tmpNodeVal = substr($srcNode -> nodeValue, $tmpNodePos + 2);
 
             if(startsWith($tmpNodeVal, "%5B%5B")) {
-                $srcNode->nodeValue = str_replace($tmpNodeVal, array("%5B%5B", "%5D%5D"), array("[[", "]]"));
+                $srcNode -> nodeValue = str_replace($tmpNodeVal, array("%5B%5B", "%5D%5D"), array("[[", "]]"));
             }
         }
     }
 
 	// absolute path
-	$isColon = strrpos($srcNode->nodeValue, ":") !== false;
-	$isDoubleSlash = startsWith($srcNode->nodeValue, "//");
+	$isColon = strrpos($srcNode -> nodeValue, ":") !== false;
+	$isDoubleSlash = startsWith($srcNode -> nodeValue, "//");
     
 	// relative path
 	if(!$isColon && !$isDoubleSlash) {
-		$srcNode->nodeValue = joinPaths($rel_path, $srcNode->nodeValue);
+		$srcNode -> nodeValue = joinPaths($rel_path, $srcNode -> nodeValue);
 	}
 }
 
 // signify modx dynamic value containers
-$ctnNodes = $xpath->query('//h1|//h2|//h3|//h4|//h5|//h6|//p');
+$ctnNodes = $xpath -> query('//h1|//h2|//h3|//h4|//h5|//h6|//p');
 
 foreach($ctnNodes as $ctnNode) {
-    if(startsWith(trim($ctnNode->nodeValue), "[[") && 
-        endsWith(trim($ctnNode->nodeValue), "]]")) {
+    if(startsWith(trim($ctnNode -> nodeValue), "[[") && 
+        endsWith(trim($ctnNode -> nodeValue), "]]")) {
 
-        $cssClass = $ctnNode->getAttribute('class');
+        $cssClass = $ctnNode -> getAttribute('class');
         $cssClass = (trim($cssClass) != '') ? trim($cssClass) . " modx" : "modx";
-        $ctnNode->setAttribute('class', $cssClass); 
+        $ctnNode -> setAttribute('class', $cssClass); 
     }
 }
 
@@ -93,25 +115,25 @@ foreach($ctnNodes as $ctnNode) {
 $bonifierJS = '//bonifier.com.hk/shared/bonifier_muse2modx.js';
 $bonifierCSS = '//bonifier.com.hk/shared/bonifier_muse2modx.css';
 
-$headNode = $xpath->query('//head');
+$headNode = $xpath -> query('//head');
 
-$cssNode = $dom->createElement('link');
-$cssNode->setAttribute('rel', 'stylesheet');
-$cssNode->setAttribute('type', 'text/css');
-$cssNode->setAttribute('href', $bonifierCSS);
+$cssNode = $dom -> createElement('link');
+$cssNode -> setAttribute('rel', 'stylesheet');
+$cssNode -> setAttribute('type', 'text/css');
+$cssNode -> setAttribute('href', $bonifierCSS);
 
-$headNode->item(0)->appendChild($cssNode);
+$headNode -> item(0) -> appendChild($cssNode);
 
-$bodyNode = $xpath->query('//body');
+$bodyNode = $xpath -> query('//body');
 
-$jsNode = $dom->createElement('script');
-$jsNode->setAttribute('type', 'text/javascript');
-$jsNode->setAttribute('src', $bonifierJS);
+$jsNode = $dom -> createElement('script');
+$jsNode -> setAttribute('type', 'text/javascript');
+$jsNode -> setAttribute('src', $bonifierJS);
 
-$bodyNode->item(0)->appendChild($jsNode);
+$bodyNode -> item(0) -> appendChild($jsNode);
 
 ob_start();
-print $dom->saveHTML();
+print $dom -> saveHTML();
 return ob_get_clean();
 
 function startsWith($haystack, $needle)
