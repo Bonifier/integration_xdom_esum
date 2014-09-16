@@ -75,44 +75,73 @@ for($i = 1; $i <= $templateCnt; $i++) {
     }
 
     // merge body (script) (scripts in head are not merged)
-    // ... comapare blocks of code first, insert when missing
-    // ... if code block type same, but content different, compare line by line, insert when missing
     $comNodes = $xpath_com->query("//body/script");
     $srcNodes = $xpath->query("//body/script");
 
     $lastSrcMatchedOrInserted = -1;
     for($j = 0; $j < count($comNodes); $j++) {
 
-        // compare blocks of script and sort up unmatch
+        // compare blocks of script and sort out unmatch
         $matched = false;
         for($k = 0; $k < count($srcNodes); $k++) {
             if(isSameScripts($comNodes->item($j), $srcNodes->item($k))) {
                 $lastSrcMatchedOrInserted = max($lastSrcMatchedOrInserted, $k);
-                $matched = true;
+                $srcMatched = true;
                 break;
             }
         }
 
-        if(!$matched) {
+        if(!$srcMatched) {
             if($comNodes->item($j)->hasAttribute('src')) {
 
                 // if unmatch block is just referening file, add from component to template
-                $insertPos = $lastSrcMatchedOrInserted + 1;
-                if($insertPos >= count($srcNodes)) {
+                $insertSrcPos = $lastSrcMatchedOrInserted + 1;
+                if($insertSrcPos >= count($srcNodes)) {
                     $srcNodes->item(0)->parentNode->appendChild($comNodes->item($j));
                 } else {
-                    $srcNodes->item(0)->parentNode->insertBefore($comNodes->item($j), $srcNodes->item($insertPos));
+                    $srcNodes->item(0)->parentNode->insertBefore($comNodes->item($j), $srcNodes->item($insertSrcPos));
                 }
             } else {
 
                 // if unmatch block is the last in-page script block, compare line by line
+                if($j == count($comNodes) - 1) {
+                    $comLines = explode('\n', $comNodes->item($j)->nodeValue);
+                    $srcLines = explode('\n', $srcNodes->item(count($srcNodes) - 1)->nodeValue);
+
+                    $lastLineMatchedOrInserted = -1;
+                    for($l = 0; $l < count($comLines); $l++) {
+                        
+                        // compare lines of script and sort out unmatch
+                        $lineMatched = false;
+                        for($m = 0; $m < count($srcLines); $m++) {
+                            if(isSameLines($comLines[$l], $srcLines[$m])) {
+                                $lastLineMatchedOrInserted = max($lastLineMatchedOrInserted, $m);
+                                $lineMatched = true;
+                                break;
+                            }
+                        }
+
+                        // add to last match position
+                        $insertLinePos = $lastSrcMatchedOrInserted + 1;
+                        if(!$lineMatched) {
+                            if($insertPos >= count($srcLines)) {
+                                $srcLines[] = $comLines[$l]; // append
+                            } else {
+                                array_splice($srcLines, $insertLinePos, 0, $comLines[$l]);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
-    // merge head (css)
-    // ... compare link rel, insert when missing
-    // ... if css file name same as component name page
+    // merge head (css) (get only the one with id=pagesheet)
+    $comNodes = $xpath_com->query("//link/[@id='pagesheet']");
+    if(count($comNodes) > 0) {
+        $css = file_get_contents(joinPaths($rel_path, $comNodes->item(0)->nodeValue));
+        // copy all content except those start with #page or body
+    }
 }
 
 // fix template referencing path
