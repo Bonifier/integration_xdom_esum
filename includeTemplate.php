@@ -28,7 +28,7 @@ $rel_path = substr($tpl, 0, strrpos($tpl, "/"));
 
 $html = file_get_contents($tpl);
 $dom = new DOMDocument;
-$dom -> loadHTML($html);
+$dom->loadHTML($html);
 $xpath = new DOMXPath($dom);
 
 // load components
@@ -36,47 +36,79 @@ for($i = 1; $i <= $templateCnt; $i++) {
 
     $html_com = file_get_contents(${'component' . $i - 1});
     $dom_com = new DOMDocument;
-    $dom_com -> loadHTML($html_com);
+    $dom_com->loadHTML($html_com);
     $xpath_com = new DOMXPath($dom_com);
 
     // merge body (everything inside 'page')
     // XPath Tester - http://videlibri.sourceforge.net/cgi-bin/xidelcgi
-    $comNodes = $xpath_com -> query("//div[@id='page']/*");
-    $srcNodes = $xpath -> query("//*[@id='" . ${'placehold' . $i} . "']");
+    $comNodes = $xpath_com->query("//div[@id='page']/*");
+    $srcNodes = $xpath->query("//*[@id='" . ${'placehold' . $i} . "']");
 
     if(count($comNodes) > 0 && count($srcNodes) > 0) {
 
         // handle repeat
         if(!isset(${'repeatId' . $i}) || ${'repeatId' . $i} == ""  || !isset(${'repeatRef' . $i}) || ${'repeatRef' . $i} == "") {
-            $repNodes = $xpath_com -> query("//*[id='" . ${'repeatId' . $i} . "']", $comNodes -> item(0));
+            $repNodes = $xpath_com->query("//*[id='" . ${'repeatId' . $i} . "']", $comNodes->item(0));
             if(count($repNodes) > 0) {
                 foreach (explode(',', ${'repeatRef' . $i}) as $repeatRef) {
 
                     // deep clone the repeating tag
-                    $repNodeClone = $repNodes -> item(0) -> cloneNode(true);
+                    $repNodeClone = $repNodes->item(0)->cloneNode(true);
 
                     // change element id
-                    $repNodeClone -> setAttribute('id', $repNodeClone -> getAttribute('id') . $repeatRef);
+                    $repNodeClone->setAttribute('id', $repNodeClone->getAttribute('id') . $repeatRef);
 
                     // add it to the end of repeating tags
-                    $repNodes -> item(0) -> parentNode -> appendChild($repNoteClone);
+                    $repNodes->item(0)->parentNode->appendChild($repNoteClone);
                 }
             }
         }
 
         // insert to template
-        if($srcNodes -> item(0) -> nodeName != 'div' && $srcNodes -> item(0) -> nodeName != 'span') {
+        if($srcNodes->item(0)->nodeName != 'div' && $srcNodes->item(0)->nodeName != 'span') {
             // component replace placeholder (since it is not container)
-            $srcNodes -> item(0) -> parentNode -> replaceChild($comNodes -> item(0), $srcNodes -> item(0));
+            $srcNodes->item(0)->parentNode->replaceChild($comNodes->item(0), $srcNodes->item(0));
         } else {
             // component insert to placeholder
-            $srcNodes -> item(0) -> appendChild($comNodes -> item(0));
+            $srcNodes->item(0)->appendChild($comNodes->item(0));
         }
     }
 
-    // merge body (script)
+    // merge body (script) (scripts in head are not merged)
     // ... comapare blocks of code first, insert when missing
     // ... if code block type same, but content different, compare line by line, insert when missing
+    $comNodes = $xpath_com->query("//body/script");
+    $srcNodes = $xpath->query("//body/script");
+
+    $lastSrcMatchedOrInserted = -1;
+    for($j = 0; $j < count($comNodes); $j++) {
+
+        // compare blocks of script and sort up unmatch
+        $matched = false;
+        for($k = 0; $k < count($srcNodes); $k++) {
+            if(isSameScripts($comNodes->item($j), $srcNodes->item($k))) {
+                $lastSrcMatchedOrInserted = max($lastSrcMatchedOrInserted, $k);
+                $matched = true;
+                break;
+            }
+        }
+
+        if(!$matched) {
+            if($comNodes->item($j)->hasAttribute('src')) {
+
+                // if unmatch block is just referening file, add from component to template
+                $insertPos = $lastSrcMatchedOrInserted + 1;
+                if($insertPos >= count($srcNodes)) {
+                    $srcNodes->item(0)->parentNode->appendChild($comNodes->item($j));
+                } else {
+                    $srcNodes->item(0)->parentNode->insertBefore($comNodes->item($j), $srcNodes->item($insertPos));
+                }
+            } else {
+
+                // if unmatch block is the last in-page script block, compare line by line
+            }
+        }
+    }
 
     // merge head (css)
     // ... compare link rel, insert when missing
@@ -84,43 +116,43 @@ for($i = 1; $i <= $templateCnt; $i++) {
 }
 
 // fix template referencing path
-$srcNodes = $xpath -> query('//@href|//@src|//@data-src');
+$srcNodes = $xpath->query('//@href|//@src|//@data-src');
 
 foreach($srcNodes as $srcNode) {
 
     // sometimes we could use modx tags link in muse
     // muse automatically convert [[ to %5B%5B and ]] to %5D%5D, plus prefix http://
-    if(endsWith(trim($srcNode -> nodeValue), "%5D%5D")) {
-        $tmpNodePos = strpos($srcNode -> nodeValue, "//");
+    if(endsWith(trim($srcNode->nodeValue), "%5D%5D")) {
+        $tmpNodePos = strpos($srcNode->nodeValue, "//");
         if($tmpNodePos !== false) {
-            $tmpNodeVal = substr($srcNode -> nodeValue, $tmpNodePos + 2);
+            $tmpNodeVal = substr($srcNode->nodeValue, $tmpNodePos + 2);
 
             if(startsWith($tmpNodeVal, "%5B%5B")) {
-                $srcNode -> nodeValue = str_replace($tmpNodeVal, array("%5B%5B", "%5D%5D"), array("[[", "]]"));
+                $srcNode->nodeValue = str_replace($tmpNodeVal, array("%5B%5B", "%5D%5D"), array("[[", "]]"));
             }
         }
     }
 
 	// absolute path
-	$isColon = strrpos($srcNode -> nodeValue, ":") !== false;
-	$isDoubleSlash = startsWith($srcNode -> nodeValue, "//");
+	$isColon = strrpos($srcNode->nodeValue, ":") !== false;
+	$isDoubleSlash = startsWith($srcNode->nodeValue, "//");
     
 	// relative path
 	if(!$isColon && !$isDoubleSlash) {
-		$srcNode -> nodeValue = joinPaths($rel_path, $srcNode -> nodeValue);
+		$srcNode->nodeValue = joinPaths($rel_path, $srcNode->nodeValue);
 	}
 }
 
 // signify modx dynamic value containers
-$ctnNodes = $xpath -> query('//h1|//h2|//h3|//h4|//h5|//h6|//p');
+$ctnNodes = $xpath->query('//h1|//h2|//h3|//h4|//h5|//h6|//p');
 
 foreach($ctnNodes as $ctnNode) {
-    if(startsWith(trim($ctnNode -> nodeValue), "[[") && 
-        endsWith(trim($ctnNode -> nodeValue), "]]")) {
+    if(startsWith(trim($ctnNode->nodeValue), "[[") && 
+        endsWith(trim($ctnNode->nodeValue), "]]")) {
 
-        $cssClass = $ctnNode -> getAttribute('class');
+        $cssClass = $ctnNode->getAttribute('class');
         $cssClass = (trim($cssClass) != '') ? trim($cssClass) . " modx" : "modx";
-        $ctnNode -> setAttribute('class', $cssClass); 
+        $ctnNode->setAttribute('class', $cssClass); 
     }
 }
 
@@ -128,25 +160,25 @@ foreach($ctnNodes as $ctnNode) {
 $bonifierJS = '//bonifier.com.hk/shared/bonifier_muse2modx.js';
 $bonifierCSS = '//bonifier.com.hk/shared/bonifier_muse2modx.css';
 
-$headNode = $xpath -> query('//head');
+$headNode = $xpath->query('//head');
 
-$cssNode = $dom -> createElement('link');
-$cssNode -> setAttribute('rel', 'stylesheet');
-$cssNode -> setAttribute('type', 'text/css');
-$cssNode -> setAttribute('href', $bonifierCSS);
+$cssNode = $dom->createElement('link');
+$cssNode->setAttribute('rel', 'stylesheet');
+$cssNode->setAttribute('type', 'text/css');
+$cssNode->setAttribute('href', $bonifierCSS);
 
-$headNode -> item(0) -> appendChild($cssNode);
+$headNode->item(0)->appendChild($cssNode);
 
-$bodyNode = $xpath -> query('//body');
+$bodyNode = $xpath->query('//body');
 
-$jsNode = $dom -> createElement('script');
-$jsNode -> setAttribute('type', 'text/javascript');
-$jsNode -> setAttribute('src', $bonifierJS);
+$jsNode = $dom->createElement('script');
+$jsNode->setAttribute('type', 'text/javascript');
+$jsNode->setAttribute('src', $bonifierJS);
 
-$bodyNode -> item(0) -> appendChild($jsNode);
+$bodyNode->item(0)->appendChild($jsNode);
 
 ob_start();
-print $dom -> saveHTML();
+print $dom->saveHTML();
 return ob_get_clean();
 
 function startsWith($haystack, $needle)
@@ -169,4 +201,20 @@ function joinPaths() {
     $paths = array_map(create_function('$p', 'return trim($p, "/");'), $paths);
     $paths = array_filter($paths);
     return join('/', $paths);
+}
+
+function isSameLines($str1, $str2) {
+    return trim($str1) === trim($str2);
+}
+
+function isSameScripts($node1, $node2) {
+    if($node1->hasAttribute('src')) {
+        if($node2->hasAttribute('src')) {
+            return isSameLines($node1->getAttribute('src'), $node2->getAttribute('src'))
+        } else {
+            return false;
+        }
+    } else {
+        return isSameLines($node1->nodeValue, $node2->nodeValue)
+    }
 }
