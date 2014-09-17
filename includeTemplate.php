@@ -110,7 +110,7 @@ for($i = 1; $i <= $templateCnt; $i++) {
 
                     $lastLineMatchedOrInserted = -1;
                     for($l = 0; $l < count($comLines); $l++) {
-                        
+
                         // compare lines of script and sort out unmatch
                         $lineMatched = false;
                         for($m = 0; $m < count($srcLines); $m++) {
@@ -139,9 +139,35 @@ for($i = 1; $i <= $templateCnt; $i++) {
     // merge head (css) (get only the one with id=pagesheet)
     $comNodes = $xpath_com->query("//link/[@id='pagesheet']");
     if(count($comNodes) > 0) {
-        $css = file_get_contents(joinPaths($rel_path, $comNodes->item(0)->nodeValue));
-        // copy all content except those start with #page or body
+        $css = file_get_contents(joinPaths($rel_path, $comNodes->item(0)->getAttribute('href')));
+        if($css) {
+            $comLines = explode('\n', $css);
+            $inBracket = false;
+            $skip = false;
+            for($comLines as $comLine) {
+
+                // copy all content except those start with #page or body
+                if(!$inBracket && (startsWith($comLine, '#page') || startsWith($comLine, 'body'))) {
+                    $skip = true;
+                }
+
+                if(strpos($comLine, "{") !== false) {
+                    $inBracket = true;
+                }
+
+                if(strpos($comLine, "}") !== false) {
+                    $inBracket = false;
+                    $skip = false;
+                }
+
+                if(!$skip) $newCss .= $comLine;
+            }
+        }
     }
+
+    $cssNode = $dom->createElement('style');
+    $cssNode->nodeValue = $newCss;
+    $xpath->query("//head/")->item(0)->appendChild($cssNode);
 }
 
 // fix template referencing path
@@ -163,13 +189,13 @@ foreach($srcNodes as $srcNode) {
     }
 
 	// absolute path
-	$isColon = strrpos($srcNode->nodeValue, ":") !== false;
-	$isDoubleSlash = startsWith($srcNode->nodeValue, "//");
+    $isColon = strrpos($srcNode->nodeValue, ":") !== false;
+    $isDoubleSlash = startsWith($srcNode->nodeValue, "//");
     
 	// relative path
-	if(!$isColon && !$isDoubleSlash) {
-		$srcNode->nodeValue = joinPaths($rel_path, $srcNode->nodeValue);
-	}
+    if(!$isColon && !$isDoubleSlash) {
+      $srcNode->nodeValue = joinPaths($rel_path, $srcNode->nodeValue);
+  }
 }
 
 // signify modx dynamic value containers
@@ -180,9 +206,9 @@ foreach($ctnNodes as $ctnNode) {
         endsWith(trim($ctnNode->nodeValue), "]]")) {
 
         $cssClass = $ctnNode->getAttribute('class');
-        $cssClass = (trim($cssClass) != '') ? trim($cssClass) . " modx" : "modx";
-        $ctnNode->setAttribute('class', $cssClass); 
-    }
+    $cssClass = (trim($cssClass) != '') ? trim($cssClass) . " modx" : "modx";
+    $ctnNode->setAttribute('class', $cssClass); 
+}
 }
 
 // bespoke de bonifier add on scripts
