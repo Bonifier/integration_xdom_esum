@@ -1,11 +1,11 @@
 <?php
 # Snippet to include template files from file system
-# USAGE: [[includeTemplate? &tpl=`assets\_bespoke\tp_pg1.html`              // muse html file load as template 
-#                           &component1=`assets\_bespoke\tp_accordion.html`  // muse html file load as component
+# USAGE: [[includeTemplate? &tpl=`assets/_bespoke/tp_pg1.html`              // muse html file load as template 
+#                           &component1=`assets/_bespoke/tp_accordion.html`  // muse html file load as component
 #                           &placehold1=`u1391-2`                           // element id in !template! for the component to add in
 #                           &repeatId1=`u1587`                              // element id in !component! which needed to repeat
 #                           &repeatRef1=`1,3,4,7`                           // modx resources id for repeater to refer to
-#                           &component2=`assets\_bespoke\tp_menu.html` ...]] // goes on
+#                           &component2=`assets/_bespoke/tp_menu.html` ...]] // goes on
 
 // check parameters integrity
 if ( !isset($tpl) || $tpl== "" ) return "Missing Template file!";
@@ -47,8 +47,9 @@ for($i = 1; $i <= $templateCnt; $i++) {
     if($comNodes->length > 0 && $srcNodes->length > 0) {
 
         // handle repeat
-        if(!isset(${'repeatId' . $i}) || ${'repeatId' . $i} == ""  || !isset(${'repeatRef' . $i}) || ${'repeatRef' . $i} == "") {
-            $repNodes = $xpath_com->query("//*[id='" . ${'repeatId' . $i} . "']", $comNodes->item(0));
+        if(isset(${'repeatId' . $i}) && ${'repeatId' . $i} != "" && isset(${'repeatRef' . $i}) && ${'repeatRef' . $i} != "") {
+
+            $repNodes = $xpath_com->query("//*[@id='" . ${'repeatId' . $i} . "']", $comNodes->item(0));
             if($repNodes->length > 0) {
                 foreach (explode(',', ${'repeatRef' . $i}) as $repeatRef) {
 
@@ -59,7 +60,7 @@ for($i = 1; $i <= $templateCnt; $i++) {
                     $repNodeClone->setAttribute('id', $repNodeClone->getAttribute('id') . $repeatRef);
 
                     // add it to the end of repeating tags
-                    $repNodes->item(0)->parentNode->appendChild($repNoteClone);
+                    $repNodes->item(0)->parentNode->appendChild($repNodeClone);
                 }
             }
         }
@@ -67,11 +68,11 @@ for($i = 1; $i <= $templateCnt; $i++) {
         // insert to template
         if($srcNodes->item(0)->nodeName != 'div' && $srcNodes->item(0)->nodeName != 'span') {
             // component replace placeholder (since it is not container)
-            $srcNodes->item(0)->parentNode->replaceChild($comNodes->item(0), $srcNodes->item(0));
+            $srcNodes->item(0)->parentNode->replaceChild($dom->importNode($comNodes->item(0), true), $srcNodes->item(0));
 
         } else {
             // component insert to placeholder
-            $srcNodes->item(0)->appendChild($comNodes->item(0));
+            $srcNodes->item(0)->appendChild($dom->importNode($comNodes->item(0), true));
         }
     }
 
