@@ -84,9 +84,10 @@ for($i = 1; $i <= $templateCnt; $i++) {
     for($j = 0; $j < $comNodes->length; $j++) {
 
         // compare blocks of script and sort out unmatch
-        $matched = false;
+        $srcMatched = false;
         for($k = 0; $k < $srcNodes->length; $k++) {
             if(isSameScripts($comNodes->item($j), $srcNodes->item($k))) {
+
                 $lastSrcMatchedOrInserted = max($lastSrcMatchedOrInserted, $k);
                 $srcMatched = true;
                 break;
@@ -99,9 +100,9 @@ for($i = 1; $i <= $templateCnt; $i++) {
                 // if unmatch block is just referening file, add from component to template
                 $insertSrcPos = $lastSrcMatchedOrInserted + 1;
                 if($insertSrcPos >= $srcNodes->length) {
-                    $srcNodes->item(0)->parentNode->appendChild($comNodes->item($j));
+                    $srcNodes->item(0)->parentNode->appendChild($dom->importNode($comNodes->item($j), true));
                 } else {
-                    $srcNodes->item(0)->parentNode->insertBefore($comNodes->item($j), $srcNodes->item($insertSrcPos));
+                    $srcNodes->item(0)->parentNode->insertBefore($dom->importNode($comNodes->item($j), true), $srcNodes->item($insertSrcPos));
                 }
             } else {
 
@@ -111,11 +112,11 @@ for($i = 1; $i <= $templateCnt; $i++) {
                     $srcLines = explode('\n', $srcNodes->item($srcNodes->length - 1)->nodeValue);
 
                     $lastLineMatchedOrInserted = -1;
-                    for($l = 0; $l < $comLines->length; $l++) {
+                    for($l = 0; $l < count($comLines); $l++) {
 
                         // compare lines of script and sort out unmatch
                         $lineMatched = false;
-                        for($m = 0; $m < $srcLines->length; $m++) {
+                        for($m = 0; $m < count($srcLines); $m++) {
                             if(isSameLines($comLines[$l], $srcLines[$m])) {
                                 $lastLineMatchedOrInserted = max($lastLineMatchedOrInserted, $m);
                                 $lineMatched = true;
@@ -124,14 +125,15 @@ for($i = 1; $i <= $templateCnt; $i++) {
                         }
 
                         // add to last match position
-                        $insertLinePos = $lastSrcMatchedOrInserted + 1;
+                        $insertLinePos = $lastLineMatchedOrInserted + 1;
                         if(!$lineMatched) {
-                            if($insertPos >= $srcLines->length) {
+                            if($insertPos >= count($srcLines)) {
                                 $srcLines[] = $comLines[$l]; // append
                             } else {
                                 array_splice($srcLines, $insertLinePos, 0, $comLines[$l]);
                             }
                         }
+                        $srcNodes->item(count($srcNodes) - 1)->nodeValue = implode($srcLines);
                     }
                 }
             }
