@@ -108,8 +108,8 @@ for($i = 1; $i <= $templateCnt; $i++) {
 
                 // if unmatch block is the last in-page script block, compare line by line
                 if($j == $comNodes->length - 1) {
-                    $comLines = explode('\n', $comNodes->item($j)->nodeValue);
-                    $srcLines = explode('\n', $srcNodes->item($srcNodes->length - 1)->nodeValue);
+                    $comLines = explode("\n", $comNodes->item($j)->nodeValue);
+                    $srcLines = explode("\n", $srcNodes->item($srcNodes->length - 1)->nodeValue);
 
                     $lastLineMatchedOrInserted = -1;
                     for($l = 0; $l < count($comLines); $l++) {
@@ -127,14 +127,14 @@ for($i = 1; $i <= $templateCnt; $i++) {
                         // add to last match position
                         $insertLinePos = $lastLineMatchedOrInserted + 1;
                         if(!$lineMatched) {
-                            if($insertPos >= count($srcLines)) {
+                            if($insertLinePos >= count($srcLines)) {
                                 $srcLines[] = $comLines[$l]; // append
                             } else {
                                 array_splice($srcLines, $insertLinePos, 0, $comLines[$l]);
                             }
                         }
-                        $srcNodes->item(count($srcNodes) - 1)->nodeValue = implode($srcLines);
                     }
+                    $srcNodes->item($srcNodes->length - 1)->nodeValue = implode("\n", $srcLines);
                 }
             }
         }
@@ -145,7 +145,7 @@ for($i = 1; $i <= $templateCnt; $i++) {
     if($comNodes->length > 0) {
         $css = file_get_contents(joinPaths($rel_path, $comNodes->item(0)->getAttribute('href')));
         if($css) {
-            $comLines = explode('\n', $css);
+            $comLines = explode("\n", $css);
             $inBracket = false;
             $skip = false;
             foreach($comLines as $comLine) {
