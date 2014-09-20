@@ -128,27 +128,32 @@ for($i = 1; $i <= $templateCnt; $i++) {
                         $insertLinePos = $lastLineMatchedOrInserted + 1;
                         if(!$lineMatched) {
                             if($insertLinePos >= count($srcLines)) {
-                                $srcLines[] = $comLines[$l]; // append
+                                $srcLines[] = $comLines[$l]; // append     
                             } else {
                                 array_splice($srcLines, $insertLinePos, 0, $comLines[$l]);
                             }
                         }
                     }
-                    $srcNodes->item($srcNodes->length - 1)->nodeValue = implode("\n", $srcLines);
+                    $srcNodes->item($srcNodes->length - 1)->nodeValue = htmlspecialchars(implode("\n", $srcLines));
                 }
             }
         }
     }
 
     // merge head (css) (get only the one with id=pagesheet)
-    $comNodes = $xpath_com->query("//link/[@id='pagesheet']");
+    $comNodes = $xpath_com->query("//link[@id='pagesheet']");
     if($comNodes->length > 0) {
-        $css = file_get_contents(joinPaths($rel_path, $comNodes->item(0)->getAttribute('href')));
+
+        $cssPath = joinPaths($rel_path, $comNodes->item(0)->getAttribute('href'));
+        if(strpos($cssPath, "?") !== false) {
+            $cssPath = substr($cssPath, 0, strpos($cssPath, "?"));
+        }
+
+        $css = file_get_contents($cssPath);
         if($css) {
-            $comLines = explode("\n", $css);
             $inBracket = false;
             $skip = false;
-            foreach($comLines as $comLine) {
+            foreach(explode("\n", $css) as $comLine) {
 
                 // copy all content except those start with #page or body
                 if(!$inBracket && (startsWith($comLine, '#page') || startsWith($comLine, 'body'))) {
@@ -161,17 +166,38 @@ for($i = 1; $i <= $templateCnt; $i++) {
 
                 if(strpos($comLine, "}") !== false) {
                     $inBracket = false;
-                    $skip = false;
                 }
 
-                if(!$skip) $newCss .= $comLine;
+                if($inBracket) {
+                    $comLineSplitted = explode(":", $comLine);
+                    if(count($comLineSplitted) == 2) {
+                        if(trim($comLineSplitted[0]) == "width") {
+                            $comLine = "width: 100%;";
+                        }
+
+                        if(trim($comLineSplitted[0]) == "padding-left" || trim($comLineSplitted[0]) == "padding-right") {
+                            // Ref: http://stackoverflow.com/questions/779434/preventing-padding-propety-from-changing-width-or-height-in-css
+                            $comLine .= "-webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */";
+                            $comLine .= "-moz-box-sizing: border-box;    /* Firefox, other Gecko */";
+                            $comLine .= "box-sizing: border-box;         /* Opera/IE 8+ */";
+                        }
+                    }
+                }
+
+                if(!$skip) {
+                    if($comLine) $newCss .= $comLine;
+                } elseif(strpos($comLine, "}") !== false) {
+                    $skip = false;
+                }
             }
         }
-    }
 
-    $cssNode = $dom->createElement('style');
-    $cssNode->nodeValue = $newCss;
-    $xpath->query("//head")->item(0)->appendChild($cssNode);
+        if($newCss) {
+            $cssNode = $dom->createElement('style');
+            $cssNode->nodeValue = $newCss;
+            $xpath->query("//head")->item(0)->appendChild($cssNode);
+        }
+    }
 }
 
 // fix template referencing path
