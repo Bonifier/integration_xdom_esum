@@ -51,25 +51,30 @@ for($i = 1; $i <= $templateCnt; $i++) {
 
             $repNodes = $xpath_com->query("//*[@id='" . ${'repeatId' . $i} . "']", $comNodes->item(0));
             if($repNodes->length > 0) {
-                foreach (explode(',', ${'repeatRef' . $i}) as $repeatRef) {
+                foreach (preg_split("/[\r\n,]+/", ${'repeatRef' . $i}, -1, PREG_SPLIT_NO_EMPTY) as $repeatRef) {
 
                     // deep clone the repeating tag
                     $repNodeClone = $repNodes->item(0)->cloneNode(true);
 
                     // change element id
-                    $repNodeClone->setAttribute('id', $repNodeClone->getAttribute('id') . $repeatRef);
+                    // $repNodeClone->setAttribute('id', $repNodeClone->getAttribute('id') . '_repId' . $repeatRef);
+
+                    // change the {repId} to $repeatRef
+                    replaceNodeValues($repNodeClone, 'repId', $repeatRef);
 
                     // add it to the end of repeating tags
                     $repNodes->item(0)->parentNode->appendChild($repNodeClone);
                 }
             }
+
+            // remove the seed
+            $repNodes->item(0)->parentNode->removeChild($repNodes->item(0));
         }
 
         // insert to template
         if($srcNodes->item(0)->nodeName != 'div' && $srcNodes->item(0)->nodeName != 'span') {
             // component replace placeholder (since it is not container)
             $srcNodes->item(0)->parentNode->replaceChild($dom->importNode($comNodes->item(0), true), $srcNodes->item(0));
-
         } else {
             // component insert to placeholder
             $srcNodes->item(0)->appendChild($dom->importNode($comNodes->item(0), true));
@@ -224,8 +229,8 @@ foreach($srcNodes as $srcNode) {
     
 	// relative path
     if(!$isColon && !$isDoubleSlash) {
-      $srcNode->nodeValue = joinPaths($rel_path, $srcNode->nodeValue);
-  }
+        $srcNode->nodeValue = joinPaths($rel_path, $srcNode->nodeValue);
+    }
 }
 
 // signify modx dynamic value containers
@@ -300,5 +305,15 @@ function isSameScripts($node1, $node2) {
         }
     } else {
         return isSameLines($node1->nodeValue, $node2->nodeValue);
+    }
+}
+
+function replaceNodeValues($node, $tag, $val) {
+    if($node->hasChildNodes()) {
+        foreach ($node -> childNodes as $eachChild) {
+            replaceNodeValues($eachChild, $tag, $val);
+        }
+    } else {
+        $node->nodeValue = str_replace("{" . $tag . "}", $val, $node->nodeValue);
     }
 }
