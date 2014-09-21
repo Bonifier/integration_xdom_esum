@@ -244,6 +244,7 @@ foreach($srcNodes as $srcNode) {
             $tmpNodeVal = substr($srcNode->nodeValue, $tmpNodePos + 2);
 
             if(startsWith($tmpNodeVal, "%5B%5B")) {
+                // probably not working in XML world - will do again in last line (i.e. raw HTML print)
                 $srcNode->nodeValue = str_replace(array("%5B%5B", "%5D%5D"), array("[[", "]]"), $tmpNodeVal);
             }
         }
