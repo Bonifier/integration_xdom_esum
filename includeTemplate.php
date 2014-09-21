@@ -3,6 +3,7 @@
 # USAGE: [[includeTemplate? &tpl=`assets/_bespoke/tp_pg1.html`              // muse html file load as template 
 #                           &component1=`assets/_bespoke/tp_accordion.html`  // muse html file load as component
 #                           &placehold1=`u1391-2`                           // element id in !template! for the component to add in
+#                           &clear1=`true`                                  // clear the placeholder before insert
 #                           &repeatId1=`u1587`                              // element id in !component! which needed to repeat
 #                           &repeatRef1=`1,3,4,7`                           // modx resources id for repeater to refer to
 #                           &component2=`assets/_bespoke/tp_menu.html` ...]] // goes on
@@ -31,6 +32,10 @@ $dom = new DOMDocument;
 $dom->loadHTML($html);
 $xpath = new DOMXPath($dom);
 
+if(!$html) {
+    return "Unable to read template file " . $tpl;
+}
+
 // load components
 for($i = 1; $i <= $templateCnt; $i++) {
 
@@ -39,13 +44,20 @@ for($i = 1; $i <= $templateCnt; $i++) {
     $dom_com->loadHTML($html_com);
     $xpath_com = new DOMXPath($dom_com);
 
+    if(!$html_com) {
+        return "Unable to read component file " . ${'component' . $i};
+    }
+
     // merge body (everything inside 'page')
     // XPath Tester - http://videlibri.sourceforge.net/cgi-bin/xidelcgi
     $comNodes = $xpath_com->query("//div[@id='page']/*");
     $srcNodes = $xpath->query("//*[@id='" . ${'placehold' . $i} . "']");
 
-    if($comNodes->length > 0 && $srcNodes->length > 0) {
-
+    if($comNodes->length == 0) {
+        return "Cannot find div#page in component file";
+    } elseif($srcNodes->length == 0) {
+        return "Cannot find placeholder " . ${'placehold' . $i} . " in template file";
+    } else {
         // handle repeat
         if(isset(${'repeatId' . $i}) && ${'repeatId' . $i} != "" && isset(${'repeatRef' . $i}) && ${'repeatRef' . $i} != "") {
 
@@ -72,11 +84,17 @@ for($i = 1; $i <= $templateCnt; $i++) {
         }
 
         // insert to template
-        if($srcNodes->item(0)->nodeName != 'div' && $srcNodes->item(0)->nodeName != 'span') {
+        if(!in_array($srcNodes->item(0)->nodeName, array('div', 'span'), true)) {
             // component replace placeholder (since it is not container)
             $srcNodes->item(0)->parentNode->replaceChild($dom->importNode($comNodes->item(0), true), $srcNodes->item(0));
         } else {
             // component insert to placeholder
+            $strToClear = ${'clear' . $i};
+            if($strToClear === 'true') {
+                while ($srcNodes->item(0)->hasChildNodes()) {
+                    $srcNodes->item(0)->removeChild($srcNodes->item(0)->firstChild);
+                }
+            }
             $srcNodes->item(0)->appendChild($dom->importNode($comNodes->item(0), true));
         }
     }
@@ -310,7 +328,7 @@ function isSameScripts($node1, $node2) {
 
 function replaceNodeValues($node, $tag, $val) {
     if($node->hasChildNodes()) {
-        foreach ($node -> childNodes as $eachChild) {
+        foreach ($node->childNodes as $eachChild) {
             replaceNodeValues($eachChild, $tag, $val);
         }
     } else {

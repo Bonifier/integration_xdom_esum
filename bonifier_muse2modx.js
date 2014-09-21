@@ -17,9 +17,11 @@ $(document).ready(function () {
 			siblingStyleApplied = true;
 
 			var cssClass = $(eachContainer).attr('class').replace('modx', '').trim();
-			if(!$(eachSibling).hasClass(cssClass)) {
-				$(eachSibling).addClass(cssClass);
-			}
+            if(cssClass) {
+    			if(!$(eachSibling).hasClass(cssClass)) {
+    				$(eachSibling).addClass(cssClass);
+    			}
+            }
 
 			// eachSibling.style.cssText += eachContainer.style.cssText;
 		});
