@@ -4,6 +4,7 @@
 #                           &component1=`assets/_bespoke/tp_accordion.html`  // muse html file load as component
 #                           &placehold1=`u1391-2`                           // element id in !template! for the component to add in
 #                           &clear1=`true`                                  // clear the placeholder before insert
+#                           &width1=`100%`                                  // how the width of this component is handled
 #                           &repeatId1=`u1587`                              // element id in !component! which needed to repeat
 #                           &repeatRef1=`1,3,4,7`                           // modx resources id for repeater to refer to
 #                           &component2=`assets/_bespoke/tp_menu.html` ...]] // goes on
@@ -164,6 +165,12 @@ for($i = 1; $i <= $templateCnt; $i++) {
     }
 
     // merge head (css) (get only the one with id=pagesheet)
+    $newCss = "";
+    $comWidth = ${'width' . $i};
+    if(!$comWidth) {
+        $comWidth = "inherit";
+    }
+
     $comNodes = $xpath_com->query("//link[@id='pagesheet']");
     if($comNodes->length > 0) {
 
@@ -195,7 +202,8 @@ for($i = 1; $i <= $templateCnt; $i++) {
                     $comLineSplitted = explode(":", $comLine);
                     if(count($comLineSplitted) == 2) {
                         if(trim($comLineSplitted[0]) == "width") {
-                            $comLine = "width: 100%;";
+
+                            $comLine = "width: " . $comWidth . ";";
                         }
 
                         if(trim($comLineSplitted[0]) == "padding-left" || trim($comLineSplitted[0]) == "padding-right") {
@@ -208,7 +216,7 @@ for($i = 1; $i <= $templateCnt; $i++) {
                 }
 
                 if(!$skip) {
-                    if($comLine) $newCss .= $comLine;
+                    if($comLine) $newCss .= $comLine . "\n";
                 } elseif(strpos($comLine, "}") !== false) {
                     $skip = false;
                 }
@@ -236,17 +244,18 @@ foreach($srcNodes as $srcNode) {
             $tmpNodeVal = substr($srcNode->nodeValue, $tmpNodePos + 2);
 
             if(startsWith($tmpNodeVal, "%5B%5B")) {
-                $srcNode->nodeValue = str_replace($tmpNodeVal, array("%5B%5B", "%5D%5D"), array("[[", "]]"));
+                $srcNode->nodeValue = str_replace(array("%5B%5B", "%5D%5D"), array("[[", "]]"), $tmpNodeVal);
             }
         }
     }
 
 	// absolute path
     $isColon = strrpos($srcNode->nodeValue, ":") !== false;
-    $isDoubleSlash = startsWith($srcNode->nodeValue, "//");
+    $isDoubleSlash = trim(startsWith($srcNode->nodeValue, "//"));
+    $isModxTag = startsWith(trim($srcNode->nodeValue), "[[") && endsWith(trim($srcNode->nodeValue), "]]");
     
 	// relative path
-    if(!$isColon && !$isDoubleSlash) {
+    if(!$isColon && !$isDoubleSlash && !$isModxTag) {
         $srcNode->nodeValue = joinPaths($rel_path, $srcNode->nodeValue);
     }
 }
@@ -285,7 +294,8 @@ $jsNode->setAttribute('src', $bonifierJS);
 $bodyNode->item(0)->appendChild($jsNode);
 
 ob_start();
-print $dom->saveHTML();
+// print $dom->saveHTML();
+print str_replace(array("%5B%5B", "%5D%5D"), array("[[", "]]"), $dom->saveHTML());
 return ob_get_clean();
 
 function startsWith($haystack, $needle)
