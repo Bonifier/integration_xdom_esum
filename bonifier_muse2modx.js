@@ -1,4 +1,6 @@
 $(document).ready(function () {
+
+    // ensure container style is well applied to modx contents
 	var selector = "p.modx, " + 
 		"h1.modx, " + 
 		"h2.modx, " + 
@@ -23,6 +25,7 @@ $(document).ready(function () {
     			}
             }
 
+            // assume only classes are intended to replicate
 			// eachSibling.style.cssText += eachContainer.style.cssText;
 		});
 
@@ -30,6 +33,28 @@ $(document).ready(function () {
 			$(eachContainer).remove();
 		} 
 	});
+
+    // menu position calculation & adjustment
+    var menuItemLastWidth = 0;
+    var menuItemTextNodes = $('.MenuItemLabel > p');
+    var regex = /(\d+)/g;
+
+    for(var i = 0; i < menuItemTextNodes.length; i++) {
+        var textWidth = $(menuItemTextNode[i]).width();
+        var textPadding = $(menuItemTextNode[i]).parent().css('left');
+        var tmpMatch = textPadding.match(regex);
+
+        // set left attribute of the muse container of this menu item
+        if(menuItemLastWidth) {
+            $(menuItemTextNode[i]).parent().parent().parent().css('left', menuItemLastWidth + "px");
+        }
+
+        // if left attribute is defined with numbers & width unit is px
+        if(tmpMatch.length == 1 && textPadding.replace(regex, '') == "px") {
+            menuItemLastWidth = tmpMatch[0] * 2 + textWidth;
+            $(menuItemTextNode[i]).parent().width(menuItemLastWidth);
+        }
+    }
 });
 
 /*
