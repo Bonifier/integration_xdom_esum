@@ -36,23 +36,55 @@ $(document).ready(function () {
 
     // menu position calculation & adjustment
     var menuItemLastWidth = 0;
+    var menuItemAccumulateWidth = 0;
     var menuItemTextNodes = $('.MenuItemLabel > p');
     var regex = /(\d+)/g;
 
-    for(var i = 0; i < menuItemTextNodes.length; i++) {
-        var textWidth = $(menuItemTextNode[i]).width();
-        var textPadding = $(menuItemTextNode[i]).parent().css('left');
-        var tmpMatch = textPadding.match(regex);
+    var pageLeft = $('div#page').position().left;
+    var pageRight = pageLeft + $('div#page').width();
+    var menuBarLeft = $('.MenuBar').parent().position().left;
+    var menuBarRight = menuBarLeft + $('.MenuBar').parent().width();
 
-        // set left attribute of the muse container of this menu item
-        if(menuItemLastWidth) {
-            $(menuItemTextNode[i]).parent().parent().parent().css('left', menuItemLastWidth + "px");
+    var alignLeft = Math.abs(pageLeft - menuBarLeft) < Math.abs(pageRight - menuBarRight);
+
+    if(alignLeft) {
+        for(var i = 0; i < menuItemTextNodes.length; i++) {
+            var textWidth = $(menuItemTextNodes[i]).width();
+            var textPadding = $(menuItemTextNodes[i]).parent().css('left');
+            var tmpMatch = textPadding.match(regex);
+
+            // set left attribute of the muse container of this menu item
+            if(menuItemLastWidth) {
+                $(menuItemTextNodes[i]).parent().parent().parent().css('left', menuItemAccumulateWidth + "px");
+            }
+
+            // if left attribute is defined with numbers & width unit is px
+            if(tmpMatch.length == 1 && textPadding.replace(regex, '') == "px") {
+                menuItemLastWidth = tmpMatch[0] * 2 + textWidth;
+                $(menuItemTextNodes[i]).parent().width(textWidth);
+                $(menuItemTextNodes[i]).parent().parent().width(menuItemLastWidth);
+                menuItemAccumulateWidth += menuItemLastWidth + 2;
+            }
         }
+    } else {
+        for(var i = menuItemTextNodes.length - 1; i >= 0; i--) {
+            var textWidth = $(menuItemTextNodes[i]).width();
+            var textPadding = $(menuItemTextNodes[i]).parent().css('left');
+            var tmpMatch = textPadding.match(regex);
 
-        // if left attribute is defined with numbers & width unit is px
-        if(tmpMatch.length == 1 && textPadding.replace(regex, '') == "px") {
-            menuItemLastWidth = tmpMatch[0] * 2 + textWidth;
-            $(menuItemTextNode[i]).parent().width(menuItemLastWidth);
+            // if left attribute is defined with numbers & width unit is px
+            if(tmpMatch.length == 1 && textPadding.replace(regex, '') == "px") {
+                menuItemLastWidth = tmpMatch[0] * 2 + textWidth;
+                $(menuItemTextNodes[i]).parent().width(textWidth);
+                $(menuItemTextNodes[i]).parent().parent().width(menuItemLastWidth);
+            }
+
+            // set left attribute of the muse container of this menu item
+            if(menuItemLastWidth) {
+                menuItemAccumulateWidth = menuItemAccumulateWidth == 0 ? menuItemLastWidth : menuItemAccumulateWidth + menuItemLastWidth + 2;
+                var position = menuBarRight - menuBarLeft - menuItemAccumulateWidth;
+                $(menuItemTextNodes[i]).parent().parent().parent().css('left', position + "px");
+            }
         }
     }
 });
