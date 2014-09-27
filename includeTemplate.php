@@ -346,7 +346,6 @@ function replaceNodeValues($node, $tag, $val) {
 
     if($node->hasAttributes()) {
         foreach ($node->attributes as $eachAttr) {
-            print $eachAttr->nodeValue . "<br />";
             $eachAttr->nodeValue = str_replace(array("{".$tag."}", "%7B".$tag."%7D"), $val, $eachAttr->nodeValue);
         }
     }

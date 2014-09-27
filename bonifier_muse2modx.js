@@ -87,6 +87,18 @@ $(document).ready(function () {
             }
         }
     }
+
+    // CSS class for active menu
+    var menuItemLinkNodes = $('a.MenuItem');
+
+    for(var i = 0; i < menuItemLinkNodes.length; i++) {
+        var linkTarget = document.baseURI + $(menuItemLinkNodes[i]).attr('href');
+        var linkCurrent = document.URL;
+
+        if(linkTarget == linkCurrent && !$(menuItemLinkNodes[i]).hasClass('MuseMenuActive')) {
+            !$(menuItemLinkNodes[i]).addClass('MuseMenuActive');
+        }
+    }
 });
 
 /*
