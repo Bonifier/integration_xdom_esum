@@ -279,6 +279,11 @@ $bonifierCSS = '//bonifier.com.hk/shared/bonifier_muse2modx.css';
 
 $headNode = $xpath->query('//head');
 
+$baseNode = $dom->createElement('base');
+$baseNode->setAttribute('href', '[[++site_url]]');
+
+$headNode->item(0)->insertBefore($baseNode, $headNode->item(0)->firstChild);
+
 $cssNode = $dom->createElement('link');
 $cssNode->setAttribute('rel', 'stylesheet');
 $cssNode->setAttribute('type', 'text/css');
@@ -296,7 +301,7 @@ $bodyNode->item(0)->appendChild($jsNode);
 
 ob_start();
 // print $dom->saveHTML();
-print str_replace(array("%5B%5B", "%5D%5D"), array("[[", "]]"), $dom->saveHTML());
+print str_replace(array("%5B%5B", "%5D%5D", "%7B", "%7D"), array("[[", "]]", "{", "}"), $dom->saveHTML());
 return ob_get_clean();
 
 function startsWith($haystack, $needle)
@@ -338,11 +343,19 @@ function isSameScripts($node1, $node2) {
 }
 
 function replaceNodeValues($node, $tag, $val) {
+
+    if($node->hasAttributes()) {
+        foreach ($node->attributes as $eachAttr) {
+            print $eachAttr->nodeValue . "<br />";
+            $eachAttr->nodeValue = str_replace(array("{".$tag."}", "%7B".$tag."%7D"), $val, $eachAttr->nodeValue);
+        }
+    }
+
     if($node->hasChildNodes()) {
         foreach ($node->childNodes as $eachChild) {
             replaceNodeValues($eachChild, $tag, $val);
         }
     } else {
-        $node->nodeValue = str_replace("{" . $tag . "}", $val, $node->nodeValue);
+        $node->nodeValue = str_replace(array("{".$tag."}", "%7B".$tag."%7D"), $val, $node->nodeValue);
     }
 }
