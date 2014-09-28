@@ -1,13 +1,13 @@
 <?php
 # Snippet to include template files from file system
-# USAGE: [[includeTemplate? &tpl=`assets/_bespoke/tp_pg1.html`              // muse html file load as template 
-#                           &component1=`assets/_bespoke/tp_accordion.html`  // muse html file load as component
-#                           &placehold1=`u1391-2`                           // element id in !template! for the component to add in
-#                           &clear1=`true`                                  // clear the placeholder before insert
-#                           &width1=`100%`                                  // how the width of this component is handled
-#                           &repeatId1=`u1587`                              // element id in !component! which needed to repeat
-#                           &repeatRef1=`1,3,4,7`                           // modx resources id for repeater to refer to
-#                           &component2=`assets/_bespoke/tp_menu.html` ...]] // goes on
+# USAGE: [[includeTemplate? &tpl=`???`              
+#                           &component1=`???`  
+#                           &placehold1=`???`                          
+#                           &clear1=`???`                                  
+#                           &width1=`???`                                  
+#                           &repeatId1=`???`                              
+#                           &repeatRef1=`???`                           
+#                           &component2=`???` ...]]
 
 // check parameters integrity
 if ( !isset($tpl) || $tpl== "" ) return "Missing Template file!";
@@ -265,7 +265,9 @@ foreach($srcNodes as $srcNode) {
 $ctnNodes = $xpath->query('//h1|//h2|//h3|//h4|//h5|//h6|//p');
 
 foreach($ctnNodes as $ctnNode) {
-    if(startsWith(trim($ctnNode->nodeValue), "[[") && endsWith(trim($ctnNode->nodeValue), "]]")) {
+
+    if((startsWith(trim($ctnNode->nodeValue), "[[") || startsWith(trim($ctnNode->nodeValue), "%5B%5B"))
+        && (endsWith(trim($ctnNode->nodeValue), "]]") || endsWith(trim($ctnNode->nodeValue), "%5D%5D"))) {
 
         $cssClass = $ctnNode->getAttribute('class');
         $cssClass = (trim($cssClass) != '') ? trim($cssClass) . " modx" : "modx";

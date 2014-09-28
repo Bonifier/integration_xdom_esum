@@ -18,10 +18,14 @@ $(document).ready(function () {
 		$(eachContainer).siblings().each(function (j, eachSibling) {
 			siblingStyleApplied = true;
 
+            if($(eachSibling).is(":empty")) {
+                $(eachSibling).remove();
+            }
+
 			var cssClass = $(eachContainer).attr('class').replace('modx', '').trim();
             if(cssClass) {
     			if(!$(eachSibling).hasClass(cssClass)) {
-    				$(eachSibling).addClass(cssClass);
+    				$(eachSibling).addClass('modxClearCSS ' + cssClass);
     			}
             }
 
