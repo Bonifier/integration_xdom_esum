@@ -201,6 +201,19 @@ for($i = 1; $i <= $templateCnt; $i++) {
                 if($inBracket) {
                     $comLineSplitted = explode(":", $comLine);
                     if(count($comLineSplitted) == 2) {
+                        if(trim($comLineSplitted[0]) == "background") {
+
+                            $tmpUrlPos = strpos($comLineSplitted[1], "url(\"");
+                            if($tmpUrlPos !== false) {
+                                $tmpUrl = substr($comLineSplitted[1], $tmpUrlPos + 5);
+                                $tmpUrlPos = strpos($tmpUrl, "\"");
+                                if($tmpUrlPos !== false) {
+                                    $tmpUrl = substr($tmpUrl, 0, $tmpUrlPos);
+                                    $comLine = str_replace($tmpUrl, fixRelativePaths($tmpUrl, joinPaths($rel_path, "css")), $comLine);
+                                }
+                            }
+                        }
+
                         if(trim($comLineSplitted[0]) == "width") {
 
                             $comLine = "width: " . $comWidth . ";";
@@ -250,15 +263,7 @@ foreach($srcNodes as $srcNode) {
         }
     }
 
-	// absolute path
-    $isColon = strrpos($srcNode->nodeValue, ":") !== false;
-    $isDoubleSlash = trim(startsWith($srcNode->nodeValue, "//"));
-    $isModxTag = startsWith(trim($srcNode->nodeValue), "[[") && endsWith(trim($srcNode->nodeValue), "]]");
-    
-	// relative path
-    if(!$isColon && !$isDoubleSlash && !$isModxTag) {
-        $srcNode->nodeValue = joinPaths($rel_path, $srcNode->nodeValue);
-    }
+    $srcNode->nodeValue = fixRelativePaths($srcNode->nodeValue, $rel_path);
 }
 
 // signify modx dynamic value containers
@@ -358,5 +363,20 @@ function replaceNodeValues($node, $tag, $val) {
         }
     } else {
         $node->nodeValue = str_replace(array("{".$tag."}", "%7B".$tag."%7D"), $val, $node->nodeValue);
+    }
+}
+
+function fixRelativePaths($path, $basePath) {
+
+    // absolute path
+    $isColon = strrpos($path, ":") !== false;
+    $isDoubleSlash = trim(startsWith($path, "//"));
+    $isModxTag = startsWith(trim($path), "[[") && endsWith(trim($path), "]]");
+    
+    // relative path
+    if(!$isColon && !$isDoubleSlash && !$isModxTag) {
+        return joinPaths($basePath, $path);
+    } else {
+        return $path;
     }
 }
