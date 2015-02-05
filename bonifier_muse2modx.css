@@ -1,3 +1,11 @@
+.justifyfull {
+	text-align: justify;
+}
+
+.justifyright {
+	text-align: right;
+}
+
 /**
 * Vanilla CSS 1.0.2
 * http://cssreset.com
